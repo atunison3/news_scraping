@@ -75,6 +75,34 @@ class ArticleRepository:
                 ) for row in rows
             ]
 
+    def get_last_article_by_source(self, source: str) -> Optional[Article]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                SELECT * FROM articles
+                WHERE source = ? AND published_at IS NOT NULL
+                ORDER BY published_at DESC, id DESC
+                LIMIT 1
+                ''',
+                (source,)
+            )
+            row = cursor.fetchone()
+            if row:
+                published_at = datetime.fromisoformat(row['published_at']) if row['published_at'] else None
+                return Article(
+                    id=row['id'],
+                    url=row['url'],
+                    title=row['title'],
+                    source=row['source'],
+                    published_at=published_at,
+                    summary=row['summary'],
+                    content_type=row['content_type'],
+                    image_url=row['image_url'],
+                    tags=row['tags']
+                )
+            return None
+
     def update(self, article: Article) -> bool:
         if article.id is None:
             return False
