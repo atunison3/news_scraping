@@ -2,8 +2,11 @@ import logging
 import sqlite3
 from pathlib import Path
 from datetime import datetime
+from .scrapers.epa import get_epa_news
 from .scrapers.meta import get_meta_news
+from .scrapers.nasa import get_nasa_news
 from .scrapers.noaa import get_oceana_news
+from .scrapers.white_house import get_white_house_news
 from .repositories.article_repository import ArticleRepository
 
 DB_PATH = Path('/Users/andrewtunison/app_data/new_articles_dev.db')
@@ -54,7 +57,7 @@ def init_db(schema_path: Path):
 
 
 def scrape_and_insert_articles():
-    '''Scrapes articles from NOAA and inserts them into the database'''
+    '''Scrapes articles from configured sources and inserts them into the database.'''
     repo = ArticleRepository()
 
     def insert_new_articles(source: str, fetcher):
@@ -84,6 +87,9 @@ def scrape_and_insert_articles():
 
     insert_new_articles('Oceana', get_oceana_news)
     insert_new_articles('Meta', get_meta_news)
+    insert_new_articles('NASA', get_nasa_news)
+    insert_new_articles('White House', get_white_house_news)
+    insert_new_articles('EPA', get_epa_news)
 
 
 if __name__ == "__main__":
