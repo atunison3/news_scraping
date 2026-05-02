@@ -6,6 +6,8 @@ from .scrapers.epa import get_epa_news
 from .scrapers.meta import get_meta_news
 from .scrapers.nasa import get_nasa_news
 from .scrapers.noaa import get_oceana_news
+from .scrapers.department_of_war import get_war_articles
+from .scrapers.textron import get_textron_news
 from .scrapers.white_house import get_white_house_news
 from .repositories.article_repository import ArticleRepository
 
@@ -54,14 +56,30 @@ def init_db(schema_path: Path):
     with get_connection() as conn:
         with open(schema_path, 'r') as f:
             conn.executescript(f.read())
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA table_info(articles)')
+        columns = [row['name'] for row in cursor.fetchall()]
+        if 'has_opened' not in columns:
+            if 'has_read' in columns:
+                cursor.execute('ALTER TABLE articles RENAME COLUMN has_read TO has_opened')
+            else:
+                cursor.execute('ALTER TABLE articles ADD COLUMN has_opened BOOLEAN NOT NULL DEFAULT 0')
+        if 'has_read' not in columns:
+            cursor.execute('ALTER TABLE articles ADD COLUMN has_read BOOLEAN NOT NULL DEFAULT 0')
+        if 'thumbs_up' not in columns:
+            cursor.execute('ALTER TABLE articles ADD COLUMN thumbs_up BOOLEAN')
 
 
 def scrape_and_insert_articles():
     '''Scrapes articles from configured sources and inserts them into the database.'''
     repo = ArticleRepository()
 
-    def insert_new_articles(source: str, fetcher):
-        articles = fetcher()
+    def insert_new_articles(source: str, fetcher, *args):
+        try:
+            articles = fetcher(*args)
+        except Exception as exc:
+            logger.warning('Skipping %s because the scraper failed: %s', source, exc)
+            return 0
         last_article = repo.get_last_article_by_source(source)
         last_published = last_article.published_at if last_article else None
         new_articles = [
@@ -90,6 +108,10 @@ def scrape_and_insert_articles():
     insert_new_articles('NASA', get_nasa_news)
     insert_new_articles('White House', get_white_house_news)
     insert_new_articles('EPA', get_epa_news)
+    last_war_article = repo.get_last_article_by_source('Department of War')
+    last_war_published = last_war_article.published_at if last_war_article else None
+    insert_new_articles('Department of War', get_war_articles, last_war_published)
+    # insert_new_articles('Textron', get_textron_news)  # TODO: Textron uses JS to fill the articles
 
 
 if __name__ == "__main__":

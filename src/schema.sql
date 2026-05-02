@@ -9,5 +9,8 @@ CREATE TABLE IF NOT EXISTS articles (
     summary TEXT,
     content_type TEXT,
     image_url TEXT,
+    has_opened BOOLEAN NOT NULL DEFAULT 0,
+    has_read BOOLEAN NOT NULL DEFAULT 0,
+    thumbs_up BOOLEAN,
     tags TEXT
 );

@@ -21,18 +21,23 @@ class ArticleRepository:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO articles (url, title, source, published_at, summary, content_type, image_url, tags)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO articles 
+                    (url, title, source, published_at, summary, content_type, image_url, tags, has_opened, has_read, thumbs_up)
+                VALUES 
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                article.url,
-                article.title,
-                article.source,
-                article.published_at.isoformat() if article.published_at else None,
-                article.summary,
-                article.content_type,
-                article.image_url,
-                article.tags
-            ))
+                 article.url,
+                 article.title,
+                 article.source,
+                 article.published_at.isoformat() if article.published_at else None,
+                 article.summary,
+                 article.content_type,
+                 article.image_url,
+                 article.tags,
+                 int(article.has_opened),
+                 int(article.has_read),
++                int(article.thumbs_up) if article.thumbs_up is not None else None,
+             ))
             article.id = cursor.lastrowid
             return article
 
@@ -52,6 +57,9 @@ class ArticleRepository:
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
+                    has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
+                    has_read=bool(row['has_read']) if row['has_read'] is not None else False,
+                    thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
                     tags=row['tags']
                 )
             return None
@@ -68,6 +76,9 @@ class ArticleRepository:
                     title=row['title'],
                     source=row['source'],
                     published_at=datetime.fromisoformat(row['published_at']) if row['published_at'] else None,
+                    has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
+                    has_read=bool(row['has_read']) if row['has_read'] is not None else False,
+                    thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
@@ -96,6 +107,9 @@ class ArticleRepository:
                     title=row['title'],
                     source=row['source'],
                     published_at=published_at,
+                    has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
+                    has_read=bool(row['has_read']) if row['has_read'] is not None else False,
+                    thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
@@ -111,19 +125,22 @@ class ArticleRepository:
             cursor.execute('''
                 UPDATE articles SET
                     url = ?, title = ?, source = ?, published_at = ?, summary = ?,
-                    content_type = ?, image_url = ?, tags = ?
+                    content_type = ?, image_url = ?, tags = ?, has_opened = ?, has_read = ?, thumbs_up = ?
                 WHERE id = ?
-            ''', (
-                article.url,
-                article.title,
-                article.source,
-                article.published_at.isoformat() if article.published_at else None,
-                article.summary,
-                article.content_type,
-                article.image_url,
-                article.tags,
-                article.id
-            ))
+                ''', (
+                    article.url,
+                    article.title,
+                    article.source,
+                    article.published_at.isoformat() if article.published_at else None,
+                    article.summary,
+                    article.content_type,
+                    article.image_url,
+                    article.tags,
+                    int(article.has_opened),
+                    int(article.has_read),
+                    int(article.thumbs_up) if article.thumbs_up is not None else None,
+                    article.id
+                ))
             return cursor.rowcount > 0
 
     def delete(self, article_id: int) -> bool:
