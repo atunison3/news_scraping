@@ -1,14 +1,14 @@
 import logging
 import sqlite3
 from pathlib import Path
-from datetime import datetime
 from .scrapers.epa import get_epa_news
 from .scrapers.meta import get_meta_news
-from .scrapers.nasa import get_nasa_news
+from .scrapers.nasa1 import get_nasa_news
 from .scrapers.noaa import get_oceana_news
 from .scrapers.department_of_war import get_war_articles
-from .scrapers.textron import get_textron_news
 from .scrapers.white_house import get_white_house_news
+from .scrapers.lockheed_martin import get_lm_news
+from .scrapers.anduril import get_anduril_news
 from .repositories.article_repository import ArticleRepository
 
 DB_PATH = Path('/Users/andrewtunison/app_data/new_articles_dev.db')
@@ -103,14 +103,16 @@ def scrape_and_insert_articles():
         logger.info('Inserted %d new %s articles.', inserted, source)
         return inserted
 
+    insert_new_articles('Anduril', get_anduril_news)
     insert_new_articles('Oceana', get_oceana_news)
     insert_new_articles('Meta', get_meta_news)
-    insert_new_articles('NASA', get_nasa_news)
+    # insert_new_articles('NASA', get_nasa_news)
     insert_new_articles('White House', get_white_house_news)
     insert_new_articles('EPA', get_epa_news)
     last_war_article = repo.get_last_article_by_source('Department of War')
     last_war_published = last_war_article.published_at if last_war_article else None
     insert_new_articles('Department of War', get_war_articles, last_war_published)
+    insert_new_articles('Lockheed Martin', get_lm_news)
     # insert_new_articles('Textron', get_textron_news)  # TODO: Textron uses JS to fill the articles
 
 

@@ -22,21 +22,27 @@ class ArticleRepository:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO articles 
-                    (url, title, source, published_at, summary, content_type, image_url, tags, has_opened, has_read, thumbs_up)
+                    (
+                        url, title, source, published_at, priority, language,
+                        summary, content_type, image_url, 
+                        tags, has_opened, has_read, thumbs_up
+                    )
                 VALUES 
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                  article.url,
                  article.title,
                  article.source,
                  article.published_at.isoformat() if article.published_at else None,
+                 article.priority,
+                 article.language,
                  article.summary,
                  article.content_type,
                  article.image_url,
                  article.tags,
                  int(article.has_opened),
                  int(article.has_read),
-+                int(article.thumbs_up) if article.thumbs_up is not None else None,
++                int(article.thumbs_up) if article.thumbs_up is not None else None
              ))
             article.id = cursor.lastrowid
             return article
@@ -48,19 +54,25 @@ class ArticleRepository:
             row = cursor.fetchone()
             if row:
                 published_at = datetime.fromisoformat(row['published_at']) if row['published_at'] else None
+                created_at = datetime.fromisoformat(row['created_at'])
+                updated_at = datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None
                 return Article(
                     id=row['id'],
                     url=row['url'],
                     title=row['title'],
                     source=row['source'],
                     published_at=published_at,
+                    priority=row['priority'],
+                    language=row['language'],
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
                     has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
                     has_read=bool(row['has_read']) if row['has_read'] is not None else False,
                     thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
-                    tags=row['tags']
+                    tags=row['tags'],
+                    created_at=created_at,
+                    updated_at=updated_at
                 )
             return None
 
@@ -76,13 +88,17 @@ class ArticleRepository:
                     title=row['title'],
                     source=row['source'],
                     published_at=datetime.fromisoformat(row['published_at']) if row['published_at'] else None,
+                    priority=row['priority'],
+                    language=row['language'],
                     has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
                     has_read=bool(row['has_read']) if row['has_read'] is not None else False,
                     thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
-                    tags=row['tags']
+                    tags=row['tags'],
+                    created_at = datetime.fromisoformat(row['created_at']),
+                    updated_at = datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None
                 ) for row in rows
             ]
 
@@ -101,19 +117,25 @@ class ArticleRepository:
             row = cursor.fetchone()
             if row:
                 published_at = datetime.fromisoformat(row['published_at']) if row['published_at'] else None
+                created_at = datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+                updated_at = datetime.fromisoformat(row['updated_at']) if 'updated_at' in row.keys() else None
                 return Article(
                     id=row['id'],
                     url=row['url'],
                     title=row['title'],
                     source=row['source'],
                     published_at=published_at,
+                    priority=row['priority'],
+                    language=row['language'],
                     has_opened=bool(row['has_opened']) if row['has_opened'] is not None else False,
                     has_read=bool(row['has_read']) if row['has_read'] is not None else False,
                     thumbs_up=bool(row['thumbs_up']) if row['thumbs_up'] is not None else None,
                     summary=row['summary'],
                     content_type=row['content_type'],
                     image_url=row['image_url'],
-                    tags=row['tags']
+                    tags=row['tags'],
+                    created_at = created_at,
+                    updated_at = updated_at
                 )
             return None
 
@@ -122,16 +144,22 @@ class ArticleRepository:
             return False
         with self._get_connection() as conn:
             cursor = conn.cursor()
+
+            updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
             cursor.execute('''
                 UPDATE articles SET
-                    url = ?, title = ?, source = ?, published_at = ?, summary = ?,
-                    content_type = ?, image_url = ?, tags = ?, has_opened = ?, has_read = ?, thumbs_up = ?
+                    url = ?, title = ?, source = ?, published_at = ?, priority = ?, language = ?, summary = ?,
+                    content_type = ?, image_url = ?, tags = ?, has_opened = ?, has_read = ?, thumbs_up = ?,
+                    updated_at = ?
                 WHERE id = ?
                 ''', (
                     article.url,
                     article.title,
                     article.source,
                     article.published_at.isoformat() if article.published_at else None,
+                    article.priority,
+                    article.language,
                     article.summary,
                     article.content_type,
                     article.image_url,
@@ -139,12 +167,7 @@ class ArticleRepository:
                     int(article.has_opened),
                     int(article.has_read),
                     int(article.thumbs_up) if article.thumbs_up is not None else None,
+                    updated_at,
                     article.id
                 ))
-            return cursor.rowcount > 0
-
-    def delete(self, article_id: int) -> bool:
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM articles WHERE id = ?', (article_id,))
             return cursor.rowcount > 0

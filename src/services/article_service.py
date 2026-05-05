@@ -26,6 +26,3 @@ class ArticleService:
         if not article.id:
             raise ValueError("Article must have an ID to update")
         return self.repository.update(article)
-
-    def delete_article(self, article_id: int) -> bool:
-        return self.repository.delete(article_id)

@@ -59,7 +59,7 @@ def get_oceana_news() -> list[Article]:
                 url=article_url,
                 title=extract_article_title(article_url),
                 source='Oceana',
-                published_at=extract_article_date(date_text) if date_text else None,
+                published_at=extract_article_date(date_text) if date_text else None
             )
         )
 
